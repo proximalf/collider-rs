@@ -19,26 +19,26 @@ use geom::*;
 // This module contains methods to solve for the normal vector
 // between two PlacedShapes.
 
-pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
+pub fn rect_rect_normal(dst: &PlacedShape, src: &PlacedShape) -> DirPoint {
     let (card, overlap) = Card::values()
         .iter()
         .cloned()
         .map(|card| (card, dst.card_overlap(src, card)))
         .min_by_key(|&(_, overlap)| n64(overlap))
         .unwrap();
-    DirVec2::new(card.into(), overlap)
+    DirPoint::new(card.into(), overlap)
 }
 
-pub fn circle_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
+pub fn circle_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirPoint {
     let mut dir = dst.pos - src.pos;
     let dist = dir.len();
     if dist == 0.0 {
         dir = v2(1.0, 0.0);
     }
-    DirVec2::new(dir, (src.dims().x + dst.dims().x) * 0.5 - dist)
+    DirPoint::new(dir, (src.dims().x + dst.dims().x) * 0.5 - dist)
 }
 
-pub fn rect_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
+pub fn rect_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirPoint {
     let sector = dst.sector(src.pos);
     if sector.is_corner() {
         circle_circle_normal(
@@ -50,7 +50,7 @@ pub fn rect_circle_normal(dst: &PlacedShape, src: &PlacedShape) -> DirVec2 {
     }
 }
 
-pub fn masked_rect_rect_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirVec2 {
+pub fn masked_rect_rect_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirPoint {
     let (card, overlap) = Card::values()
         .iter()
         .cloned()
@@ -58,14 +58,14 @@ pub fn masked_rect_rect_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardM
         .map(|card| (card, dst.card_overlap(src, card)))
         .min_by_key(|&(_, overlap)| n64(overlap))
         .unwrap_or_else(|| panic!("CardMask must be non-empty"));
-    DirVec2::new(card.into(), overlap)
+    DirPoint::new(card.into(), overlap)
 }
 
 pub fn masked_circle_circle_normal(
     dst: &PlacedShape,
     src: &PlacedShape,
     mask: CardMask,
-) -> DirVec2 {
+) -> DirPoint {
     assert!(
         mask == CardMask::full(),
         "CardMask for circle-circle normal must be full"
@@ -73,7 +73,7 @@ pub fn masked_circle_circle_normal(
     circle_circle_normal(dst, src)
 }
 
-pub fn masked_rect_circle_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirVec2 {
+pub fn masked_rect_circle_normal(dst: &PlacedShape, src: &PlacedShape, mask: CardMask) -> DirPoint {
     let sector = dst.sector(src.pos);
     if mask_has_corner_sector(sector, mask.flip()) {
         circle_circle_normal(
@@ -93,12 +93,12 @@ fn mask_has_corner_sector(sector: Sector, mask: CardMask) -> bool {
     }
 }
 
-pub fn circle_any_contact(a: &PlacedShape, b: &PlacedShape) -> Vec2 {
+pub fn circle_any_contact(a: &PlacedShape, b: &PlacedShape) -> Point {
     let normal = a.normal_from(b);
     a.pos + normal.dir() * (normal.len() - a.shape.dims().x) * 0.5
 }
 
-pub fn rect_rect_contact(a: &PlacedShape, b: &PlacedShape) -> Vec2 {
+pub fn rect_rect_contact(a: &PlacedShape, b: &PlacedShape) -> Point {
     v2(
         rect_rect_contact_1d(a.min_x(), a.max_x(), b.min_x(), b.max_x()),
         rect_rect_contact_1d(a.min_y(), a.max_y(), b.min_y(), b.max_y()),

@@ -26,22 +26,22 @@ use std::f64;
 
 #[derive(Clone)]
 pub struct DurHbVel {
-    pub value: Vec2,
-    pub resize: Vec2,
+    pub value: Point,
+    pub resize: Point,
     pub duration: f64,
 }
 
 impl DurHbVel {
     pub fn still() -> DurHbVel {
         DurHbVel {
-            value: Vec2::zero(),
-            resize: Vec2::zero(),
+            value: Point::zero(),
+            resize: Point::zero(),
             duration: f64::INFINITY,
         }
     }
 
     fn is_still(&self) -> bool {
-        self.value == Vec2::zero() && self.resize == Vec2::zero()
+        self.value == Point::zero() && self.resize == Point::zero()
     }
 
     fn negate(&self) -> DurHbVel {
@@ -54,10 +54,10 @@ impl DurHbVel {
 }
 
 impl PlacedBounds for DurHbVel {
-    fn bounds_center(&self) -> &Vec2 {
+    fn bounds_center(&self) -> &Point {
         &self.value
     }
-    fn bounds_dims(&self) -> &Vec2 {
+    fn bounds_dims(&self) -> &Point {
         &self.resize
     }
 }
@@ -232,12 +232,12 @@ mod tests {
         assert_eq!(a.separate_time(&b, 0.1), 0.0);
 
         b.value.shape = Shape::circle(2.0);
-        b.vel.resize = Vec2::zero();
+        b.vel.resize = Point::zero();
         assert_eq!(a.collide_time(&b), f64::INFINITY);
         assert_eq!(a.separate_time(&b, 0.1), 0.0);
 
         a.value.shape = Shape::circle(2.0);
-        a.vel.resize = Vec2::zero();
+        a.vel.resize = Point::zero();
         assert_eq!(a.collide_time(&b), f64::INFINITY);
         assert_eq!(a.separate_time(&b, 0.1), 0.0);
     }
@@ -254,12 +254,12 @@ mod tests {
         assert_eq!(a.collide_time(&b), 0.0);
 
         b.value.shape = Shape::circle(2.0);
-        b.vel.resize = Vec2::zero();
+        b.vel.resize = Point::zero();
         assert_eq!(a.separate_time(&b, 0.1), f64::INFINITY);
         assert_eq!(a.collide_time(&b), 0.0);
 
         a.value.shape = Shape::circle(2.0);
-        a.vel.resize = Vec2::zero();
+        a.vel.resize = Point::zero();
         assert_eq!(a.separate_time(&b, 0.1), f64::INFINITY);
         assert_eq!(a.collide_time(&b), 0.0);
     }

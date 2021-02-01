@@ -16,8 +16,8 @@
 
 mod card;
 pub(crate) mod shape;
-mod vec;
+mod point;
 
 pub use self::card::*;
 pub use self::shape::{PlacedShape, Shape, ShapeKind};
-pub use self::vec::*;
+pub use self::point::*;

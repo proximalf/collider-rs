@@ -16,7 +16,7 @@ use std::cmp::Ordering;
 
 use core::{HbVel, Hitbox};
 use float::n64;
-use geom::{v2, Card, CardMask, DirVec2, Vec2};
+use geom::{v2, Card, CardMask, DirPoint, Point};
 
 mod normals;
 #[cfg(test)]
@@ -37,7 +37,7 @@ pub enum ShapeKind {
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Shape {
     kind: ShapeKind,
-    dims: Vec2,
+    dims: Point,
 }
 
 impl Shape {
@@ -46,13 +46,13 @@ impl Shape {
     ///
     /// Dimensions must be non-negative. If `kind` is `Circle`, then the width
     /// and height must match.
-    pub fn new(kind: ShapeKind, dims: Vec2) -> Shape {
+    pub fn new(kind: ShapeKind, dims: Point) -> Shape {
         assert!(dims.x >= 0.0 && dims.y >= 0.0, "dims must be non-negative");
         Shape::with_any_dims(kind, dims)
     }
 
     // allows negative dims
-    fn with_any_dims(kind: ShapeKind, dims: Vec2) -> Shape {
+    fn with_any_dims(kind: ShapeKind, dims: Point) -> Shape {
         if kind == ShapeKind::Circle {
             assert_eq!(dims.x, dims.y, "circle width must equal height");
         }
@@ -68,7 +68,7 @@ impl Shape {
     /// Constructs a new axis-aligned rectangle shape with the given `dims`
     /// (width and height dimensions).
     #[inline]
-    pub fn rect(dims: Vec2) -> Shape {
+    pub fn rect(dims: Point) -> Shape {
         Shape::new(ShapeKind::Rect, dims)
     }
 
@@ -86,17 +86,17 @@ impl Shape {
 
     /// Returns the dims of the shape.
     #[inline]
-    pub fn dims(&self) -> Vec2 {
+    pub fn dims(&self) -> Point {
         self.dims
     }
 
     /// Shorthand for `PlacedShape::new(pos, self)`.
     #[inline]
-    pub fn place(self, pos: Vec2) -> PlacedShape {
+    pub fn place(self, pos: Point) -> PlacedShape {
         PlacedShape::new(pos, self)
     }
 
-    pub(crate) fn advance(&self, resize_vel: Vec2, elapsed: f64) -> Shape {
+    pub(crate) fn advance(&self, resize_vel: Point, elapsed: f64) -> Shape {
         Shape::with_any_dims(self.kind, self.dims + resize_vel * elapsed)
     }
 }
@@ -105,7 +105,7 @@ impl Shape {
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct PlacedShape {
     /// The position of the center of the shape.
-    pub pos: Vec2,
+    pub pos: Point,
     /// The shape.
     pub shape: Shape,
 }
@@ -113,7 +113,7 @@ pub struct PlacedShape {
 impl PlacedShape {
     /// Constructs a new `PlacedShape` with the given `pos` and `shape`.
     #[inline]
-    pub fn new(pos: Vec2, shape: Shape) -> PlacedShape {
+    pub fn new(pos: Point, shape: Shape) -> PlacedShape {
         PlacedShape { pos, shape }
     }
 
@@ -125,7 +125,7 @@ impl PlacedShape {
 
     /// Shorthand for `self.shape.dims()`
     #[inline]
-    pub fn dims(&self) -> Vec2 {
+    pub fn dims(&self) -> Point {
         self.shape.dims()
     }
 
@@ -149,6 +149,11 @@ impl PlacedShape {
         self.bounds_top()
     }
 
+    /// Returns the min and max corner points
+    pub fn corners(&self) -> (Point, Point) {
+        (Point::new(self.min_x(), self.min_y()), Point::new(self.max_x(), self.max_y()))
+    }
+
     /// Returns `true` if the two shapes overlap, subject to negligible
     /// numerical error.
     pub fn overlaps(&self, other: &PlacedShape) -> bool {
@@ -167,7 +172,7 @@ impl PlacedShape {
     ///
     /// (As a minor caveat, when computing the normal between two `Rect` shapes,
     /// the direction will always be axis-aligned.)
-    pub fn normal_from(&self, other: &PlacedShape) -> DirVec2 {
+    pub fn normal_from(&self, other: &PlacedShape) -> DirPoint {
         match (self.kind(), other.kind()) {
             (ShapeKind::Rect, ShapeKind::Rect) => normals::rect_rect_normal(self, other),
             (ShapeKind::Rect, ShapeKind::Circle) => normals::rect_circle_normal(self, other),
@@ -183,7 +188,7 @@ impl PlacedShape {
     /// `mask` will not be returned, and the next-in-line normal vector will be
     /// used instead. This function panics if `mask` is empty, or if both shapes
     /// are circles and `mask` is anything but full.
-    pub fn masked_normal_from(&self, other: &PlacedShape, mask: CardMask) -> DirVec2 {
+    pub fn masked_normal_from(&self, other: &PlacedShape, mask: CardMask) -> DirPoint {
         match (self.kind(), other.kind()) {
             (ShapeKind::Rect, ShapeKind::Rect) => {
                 normals::masked_rect_rect_normal(self, other, mask)
@@ -204,7 +209,7 @@ impl PlacedShape {
     ///
     /// If the shapes are not overlapping, returns the nearest point between the
     /// shapes.
-    pub fn contact_point(&self, other: &PlacedShape) -> Vec2 {
+    pub fn contact_point(&self, other: &PlacedShape) -> Point {
         match (self.kind(), other.kind()) {
             (ShapeKind::Rect, ShapeKind::Rect) => normals::rect_rect_contact(self, other),
             (ShapeKind::Circle, _) => normals::circle_any_contact(self, other),
@@ -214,13 +219,13 @@ impl PlacedShape {
 
     /// Shorthand for `Hitbox::new(self, HbVel::moving(vel))`.
     #[inline]
-    pub fn moving(self, vel: Vec2) -> Hitbox {
+    pub fn moving(self, vel: Point) -> Hitbox {
         Hitbox::new(self, HbVel::moving(vel))
     }
 
     /// Shorthand for `Hitbox::new(self, HbVel::moving_until(vel, end_time))`.
     #[inline]
-    pub fn moving_until(self, vel: Vec2, end_time: f64) -> Hitbox {
+    pub fn moving_until(self, vel: Point, end_time: f64) -> Hitbox {
         Hitbox::new(self, HbVel::moving_until(vel, end_time))
     }
 
@@ -236,7 +241,7 @@ impl PlacedShape {
         Hitbox::new(self, HbVel::still_until(end_time))
     }
 
-    pub(crate) fn sector(&self, point: Vec2) -> Sector {
+    pub(crate) fn sector(&self, point: Point) -> Sector {
         let x = interval_sector(self.min_x(), self.max_x(), point.x);
         let y = interval_sector(self.min_y(), self.max_y(), point.y);
         Sector::new(x, y)
@@ -257,7 +262,7 @@ impl PlacedShape {
         PlacedShape::new(pos, shape)
     }
 
-    pub(crate) fn advance(&self, vel: Vec2, resize_vel: Vec2, elapsed: f64) -> PlacedShape {
+    pub(crate) fn advance(&self, vel: Point, resize_vel: Point, elapsed: f64) -> PlacedShape {
         PlacedShape::new(
             self.pos + vel * elapsed,
             self.shape.advance(resize_vel, elapsed),
@@ -266,8 +271,8 @@ impl PlacedShape {
 }
 
 pub(crate) trait PlacedBounds {
-    fn bounds_center(&self) -> &Vec2;
-    fn bounds_dims(&self) -> &Vec2;
+    fn bounds_center(&self) -> &Point;
+    fn bounds_dims(&self) -> &Point;
 
     fn bounds_bottom(&self) -> f64 {
         self.bounds_center().y - self.bounds_dims().y * 0.5
@@ -303,7 +308,7 @@ pub(crate) trait PlacedBounds {
         src.edge(card) + self.edge(card.flip())
     }
 
-    fn corner(&self, sector: Sector) -> Vec2 {
+    fn corner(&self, sector: Sector) -> Point {
         let x = match sector.x {
             Ordering::Less => self.bounds_left(),
             Ordering::Greater => self.bounds_right(),
@@ -319,10 +324,10 @@ pub(crate) trait PlacedBounds {
 }
 
 impl PlacedBounds for PlacedShape {
-    fn bounds_center(&self) -> &Vec2 {
+    fn bounds_center(&self) -> &Point {
         &self.pos
     }
-    fn bounds_dims(&self) -> &Vec2 {
+    fn bounds_dims(&self) -> &Point {
         &self.shape.dims
     }
 }

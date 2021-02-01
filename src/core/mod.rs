@@ -34,7 +34,7 @@ pub type HbId = u64;
 #[derive(PartialEq, Clone, Debug)]
 pub struct HbVel {
     /// The movement velocity of the hitbox.
-    pub value: Vec2,
+    pub value: Point,
 
     /// A velocity describing how the hitbox dims are changing over time.
     ///
@@ -43,7 +43,7 @@ pub struct HbVel {
     /// shape over time, then the user is responsible for ensuring that the
     /// shape will not decrease below this threshold. Collider may panic if this
     /// is violated.
-    pub resize: Vec2,
+    pub resize: Point,
 
     /// An upper-bound on the time at which the hitbox will be updated by the
     /// user.
@@ -61,20 +61,20 @@ pub struct HbVel {
 impl HbVel {
     /// Creates an `HbVel` with the given `value`.
     #[inline]
-    pub fn moving(value: Vec2) -> HbVel {
+    pub fn moving(value: Point) -> HbVel {
         HbVel {
             value,
-            resize: Vec2::zero(),
+            resize: Point::zero(),
             end_time: f64::INFINITY,
         }
     }
 
     /// Creates an `HbVel` with the given `value` and `end_time`.
     #[inline]
-    pub fn moving_until(value: Vec2, end_time: f64) -> HbVel {
+    pub fn moving_until(value: Point, end_time: f64) -> HbVel {
         HbVel {
             value,
-            resize: Vec2::zero(),
+            resize: Point::zero(),
             end_time,
         }
     }
@@ -83,8 +83,8 @@ impl HbVel {
     #[inline]
     pub fn still() -> HbVel {
         HbVel {
-            value: Vec2::zero(),
-            resize: Vec2::zero(),
+            value: Point::zero(),
+            resize: Point::zero(),
             end_time: f64::INFINITY,
         }
     }
@@ -93,24 +93,24 @@ impl HbVel {
     #[inline]
     pub fn still_until(end_time: f64) -> HbVel {
         HbVel {
-            value: Vec2::zero(),
-            resize: Vec2::zero(),
+            value: Point::zero(),
+            resize: Point::zero(),
             end_time,
         }
     }
 }
 
-impl From<Vec2> for HbVel {
-    fn from(value: Vec2) -> HbVel {
+impl From<Point> for HbVel {
+    fn from(value: Point) -> HbVel {
         HbVel::moving(value)
     }
 }
 
 impl PlacedBounds for HbVel {
-    fn bounds_center(&self) -> &Vec2 {
+    fn bounds_center(&self) -> &Point {
         &self.value
     }
-    fn bounds_dims(&self) -> &Vec2 {
+    fn bounds_dims(&self) -> &Point {
         &self.resize
     }
 }
