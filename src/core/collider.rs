@@ -17,7 +17,7 @@ use core::events::{EventKey, EventKeysMap, EventManager, InternalEvent};
 use core::grid::Grid;
 use core::{HbGroup, HbId, HbProfile, HbVel, Hitbox, HIGH_TIME};
 use fnv::FnvHashMap;
-use geom::PlacedShape;
+use geom::{PlacedShape, Point};
 use std::mem;
 use util::TightSet;
 
@@ -162,7 +162,7 @@ impl<P: HbProfile> Collider<P> {
                 Some(new_event(HbEvent::Separate, id_1, id_2))
             }
             InternalEvent::Reiterate(id) => {
-                self.internal_update_hitbox(id, None);
+                self.internal_update_hitbox(id, None, None);
                 None
             }
             #[cfg(debug_assertions)]
@@ -224,11 +224,16 @@ impl<P: HbProfile> Collider<P> {
     /// Updates the velocity information of the hitbox with the given `id`.
     pub fn set_hitbox_vel(&mut self, id: HbId, vel: HbVel) {
         if self.hitboxes[&id].hitbox.vel != vel {
-            self.internal_update_hitbox(id, Some(vel));
+            self.internal_update_hitbox(id, Some(vel), None);
         }
     }
 
-    fn internal_update_hitbox(&mut self, id: HbId, vel: Option<HbVel>) {
+    pub fn set_hitbox_position(&mut self, id: HbId, position: Point) {
+        self.internal_update_hitbox(id, None, Some(position));
+
+    }
+
+    fn internal_update_hitbox(&mut self, id: HbId, vel: Option<HbVel>, pos: Option<Point>) {
         let mut info = self
             .hitboxes
             .remove(&id)
@@ -237,6 +242,10 @@ impl<P: HbProfile> Collider<P> {
         info.hitbox = info.pub_hitbox_at_time(self.time);
         if let Some(vel) = vel {
             info.hitbox.vel = vel;
+            info.hitbox.validate(self.padding, self.time);
+        }
+        if let Some(pos) = pos {
+            info.hitbox.value.pos = pos;
             info.hitbox.validate(self.padding, self.time);
         }
         info.start_time = self.time;
